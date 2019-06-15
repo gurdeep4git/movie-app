@@ -73,57 +73,65 @@ class Home extends Component {
         this.fetchItems(endPoint);
     };
 
-    fetchItems = endpoint => {
-        fetch(endpoint)
-            .then(result => result.json())
-            .then(result => {
-                console.log(result);
-                this.setState(
-                    {
-                        movies: [...this.state.movies, ...result.results],
-                        heroImage: this.state.heroImage || result.results[0],
-                        loading: false,
-                        currentPage: result.page,
-                        totalPages: result.total_pages
-                    },
-                    () => {
-                        if (this.state.searchTerm === "") {
-                            localStorage.setItem(
-                                "HomeState",
-                                JSON.stringify(this.state)
-                            );
-                        }
+    fetchItems = async endPoint => {
+        try {
+            const result = await (await fetch(endPoint)).json();
+            debugger;
+            this.setState(
+                {
+                    movies: [...this.state.movies, ...result.results],
+                    heroImage: this.state.heroImage || result.results[0],
+                    loading: false,
+                    currentPage: result.page,
+                    totalPages: result.total_pages
+                },
+                () => {
+                    if (this.state.searchTerm === "") {
+                        localStorage.setItem(
+                            "HomeState",
+                            JSON.stringify(this.state)
+                        );
                     }
-                );
-            })
-            .catch(error => console.error("Error:", error));
+                }
+            );
+        } catch (e) {
+            console.log("some error:", e);
+        }
     };
 
     render() {
+        // Destructuring
+        const {
+            movies,
+            heroImage,
+            loading,
+            currentPage,
+            totalPages,
+            searchTerm
+        } = this.state;
+
         return (
             <div className="rmdb-home">
-                {this.state.heroImage ? (
+                {heroImage && !this.state.searchTerm ? (
                     <div>
                         <HeroImage
                             image={`${Config.IMAGE_BASE_URL}${
                                 Config.BACKDROP_SIZE
-                            }${this.state.heroImage.backdrop_path}`}
-                            title={this.state.heroImage.original_title}
-                            text={this.state.heroImage.overview}
+                            }${heroImage.backdrop_path}`}
+                            title={heroImage.original_title}
+                            text={heroImage.overview}
                         />
-                        <SearchBar callback={this.searchItems} />
                     </div>
                 ) : null}
+                <SearchBar callback={this.searchItems} />
 
                 <div className="rmdb-home-grid">
                     <FourColGrid
                         header={
-                            this.state.searchTerm
-                                ? "Search Results"
-                                : "Popular Movies"
+                            searchTerm ? "Search Results" : "Popular Movies"
                         }
                     >
-                        {this.state.movies.map((movie, i) => {
+                        {movies.map((movie, i) => {
                             return (
                                 <MovieThumb
                                     key={i}
@@ -141,9 +149,8 @@ class Home extends Component {
                             );
                         })}
                     </FourColGrid>
-                    {this.state.loading ? <Spinner /> : null}
-                    {this.state.currentPage < this.state.totalPages &&
-                    !this.state.loading ? (
+                    {loading ? <Spinner /> : null}
+                    {currentPage < totalPages && !loading ? (
                         <LoadMoreBtn
                             text="load more"
                             onclick={this.loadMoreItems}
